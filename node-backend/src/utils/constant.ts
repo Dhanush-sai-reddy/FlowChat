@@ -1,0 +1,1 @@
+export const genlimits:number=10;

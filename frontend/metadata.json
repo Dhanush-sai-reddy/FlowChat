@@ -1,0 +1,7 @@
+{
+  "name": "Klymo - Controlled Anonymity",
+  "description": "A privacy-focused chat application featuring AI-powered gender verification, device fingerprinting, and ephemeral messaging.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
