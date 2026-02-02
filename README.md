@@ -1,20 +1,46 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# FlowChat
 
-# Run and deploy your AI Studio app
+**FlowChat** is a secure, anonymous video chat platform that prioritizes user safety through AI-powered gender verification. It connects users for spontaneous conversations while ensuring a safe environment.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1FBbt55x_xv8vPJDQ7VQEIXm5kH5LB3ks
+-   **Anonymous Video Chat**: Instant connections with strangers.
+-   **AI Gender Verification**:
+    -   **Primary**: Backend AI Service (FastAPI + HuggingFace 84M model).
+    -   **Fallback**: Client-side verification using `face-api.js` (TensorFlow.js) if the backend is unavailable.
+-   **Secure & Private**: Images processed for verification are deleted immediately. No personal data storage.
+-   **Dockerized**: Full stack (Frontend + Node Backend + FastAPI + Redis) runnable with a single command.
 
-## Run Locally
+## Tech Stack
 
-**Prerequisites:**  Node.js
+-   **Frontend**: React (Vite), TypeScript, TailwindCSS
+-   **Backend**: Node.js (Express), Socket.io (planned)
+-   **AI Service**: Python (FastAPI), PyTorch, Transformers, OpenCV
+-   **Database/Cache**: Redis
+-   **DevOps**: Docker, Docker Compose
 
+## Quick Start
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Prerequisites
+-   Docker & Docker Compose
+
+### Run the App
+
+```bash
+docker compose up --build
+```
+
+The application will be available at:
+-   **Frontend**: `http://localhost:5173`
+-   **Node Backend**: `http://localhost:3000`
+-   **AI Service**: `http://localhost:8000`
+
+## Project Structure
+
+-   `frontend/`: React application.
+-   `node-backend/`: Main server for handling requests and socket connections.
+-   `fastapi-service/`: Python service running the gender classification model.
+-   `nick-/`: Backup/Legacy folder.
+
+## License
+MIT
