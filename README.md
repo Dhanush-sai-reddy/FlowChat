@@ -7,7 +7,7 @@
 -   **Anonymous Video Chat**: Instant connections with strangers.
 -   **AI Gender Verification**:
     -   **Primary**: Backend AI Service (FastAPI + HuggingFace 84M model).
-    -   **Fallback**: Client-side verification using `face-api.js` (TensorFlow.js) if the backend is unavailable.
+    -   **Fallback**: Client-side verification using `face-api.js` (TensorFlow.js) if the model is           unavailable for incoming users or taking too long
 -   **Secure & Private**: Images processed for verification are deleted immediately. No personal data storage.
 -   **Dockerized**: Full stack (Frontend + Node Backend + FastAPI + Redis) runnable with a single command.
 
@@ -37,10 +37,9 @@ The application will be available at:
 
 ## Project Structure
 
--   `frontend/`: React application.
--   `node-backend/`: Main server for handling requests and socket connections.
--   `fastapi-service/`: Python service running the gender classification model.
--   `nick-/`: Backup/Legacy folder.
+-   `frontend/`: React application
+-   `node-backend/`: Main server for handling requests and socket connections
+-   `fastapi-service/`: Python service running the gender classification model
 
 ## License
 MIT
