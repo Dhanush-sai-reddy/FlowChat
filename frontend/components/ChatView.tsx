@@ -6,7 +6,8 @@ import { Icons } from '../constants';
 
 interface ChatViewProps {
     roomId: string;
-    partnerId: string;
+    partnerId: string; // This must be the Device ID for reporting/matching
+    partnerNickname?: string; // This is for display
     partnerGender?: string;
     partnerBio?: string;
     onNext: () => void;
@@ -22,6 +23,7 @@ interface Message {
 export const ChatView: React.FC<ChatViewProps> = ({
     roomId,
     partnerId,
+    partnerNickname = 'Stranger',
     partnerGender = 'Unknown',
     partnerBio = 'Just exploring Klymo.',
     onNext
@@ -37,7 +39,14 @@ export const ChatView: React.FC<ChatViewProps> = ({
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+        // Consistency check: If last message says partner left, ensure state reflects it
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            if (lastMsg.sender === 'system' && lastMsg.text === 'Partner has left the chat.' && !partnerLeft) {
+                setPartnerLeft(true);
+            }
+        }
+    }, [messages, partnerLeft]);
 
     useEffect(() => {
         const init = async () => {
@@ -118,10 +127,10 @@ export const ChatView: React.FC<ChatViewProps> = ({
             <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/95 backdrop-blur z-10">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm">
-                        {partnerId[0]?.toUpperCase() || 'A'}
+                        {partnerNickname[0]?.toUpperCase() || 'A'}
                     </div>
                     <div>
-                        <h3 className="text-sm">{renderName(partnerId)}</h3>
+                        <h3 className="text-sm">{renderName(partnerNickname)}</h3>
                         <div className="text-xs text-slate-400 flex items-center gap-1">
                             <span className={`w-1.5 h-1.5 rounded-full ${partnerLeft ? 'bg-red-500' : 'bg-green-500'}`}></span>
                             {partnerLeft ? 'Disconnected' : `${partnerGender} • ${partnerBio}`}
@@ -129,11 +138,9 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    {!partnerLeft && (
-                        <Button variant="danger" onClick={handleReport} className="!p-2 !rounded-lg" title="Report & Leave">
-                            <Icons.XMark />
-                        </Button>
-                    )}
+                    <Button variant="danger" onClick={handleReport} className="!p-2 !rounded-lg" title="Report & Leave">
+                        <Icons.XMark />
+                    </Button>
                     <Button variant="secondary" onClick={onNext} className="!px-3 !py-2 !text-sm" title="Next Match">
                         Next
                     </Button>

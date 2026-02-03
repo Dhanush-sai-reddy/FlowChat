@@ -114,7 +114,8 @@ const App: React.FC = () => {
       <div className="h-screen w-full max-w-2xl mx-auto bg-slate-900 shadow-2xl overflow-hidden relative">
         <ChatView
           roomId={matchData.roomId}
-          partnerId={matchData.partnerNickname || matchData.partnerId}
+          partnerId={matchData.partnerId}
+          partnerNickname={matchData.partnerNickname}
           partnerGender="Unknown"
           partnerBio="Just exploring Klymo."
           onNext={() => {
