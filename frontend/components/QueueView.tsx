@@ -16,29 +16,29 @@ export const QueueView: React.FC<QueueViewProps> = ({ gender, nickname, onMatchF
     const [isQueued, setIsQueued] = useState(false);
 
     useEffect(() => {
-        // Initialize socket connection
+        // Initialize socket connection and set up listeners
         const init = async () => {
             const deviceId = await getStableDeviceId();
-            connectSocket(deviceId);
+            const socket = connectSocket(deviceId);
             setStatus('Ready to find a match.');
+
+            // Set up listeners AFTER socket is connected
+            if (socket) {
+                socket.on('match_found', (data) => {
+                    console.log("MATCH FOUND!", data);
+                    onMatchFound(data);
+                });
+
+                socket.on('queue_joined', (data) => {
+                    setStatus(data.message || 'Waiting for a partner...');
+                });
+            }
         };
         init();
 
-        // Listen for match
-        const socket = getSocket();
-        if (socket) {
-            socket.on('match_found', (data) => {
-                console.log("MATCH FOUND!", data);
-                onMatchFound(data);
-            });
-
-            socket.on('queue_joined', (data) => {
-                setStatus(data.message || 'Waiting for a partner...');
-            });
-        }
-
         return () => {
-            // Cleanup listeners if needed, but usually socket persists
+            // Cleanup listeners
+            const socket = getSocket();
             if (socket) {
                 socket.off('match_found');
                 socket.off('queue_joined');
