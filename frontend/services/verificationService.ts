@@ -75,9 +75,9 @@ const verifyGender = async (imageBase64: string, videoElement?: HTMLVideoElement
   } catch (error) {
     console.warn("Backend verification failed, using client-side face-api.js:", error);
 
-    if (videoElement) {
-      return verifyGenderClientSide(videoElement);
-    }
+    // if (videoElement) {
+    //   return verifyGenderClientSide(videoElement);
+    // }
 
     return {
       isVerified: false,

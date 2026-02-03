@@ -20,6 +20,7 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onCapture, isPr
   const [isStreamReady, setIsStreamReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<string>('');
+  const [isInitializing, setIsInitializing] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   const stopCamera = () => {
@@ -33,15 +34,25 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onCapture, isPr
   };
 
   const startCamera = async () => {
+    if (isInitializing) return;
+    setIsInitializing(true);
     stopCamera();
-    setError('');
+    // Do not clear error immediately to avoid flashing "Initializing" text
+    // setError(''); 
+    setIsStreamReady(false);
 
     try {
+      console.log("Requesting camera access...");
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
         audio: false
       });
 
+      console.log("Camera access granted");
       streamRef.current = mediaStream;
 
       if (videoRef.current) {
@@ -49,13 +60,21 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onCapture, isPr
       }
 
       setIsStreamReady(true);
+      setError(''); // Clear error only on success
     } catch (err: any) {
-      console.error(err);
+      console.error("Camera Error:", err);
+      // Even if blocked, we want to allow them to try again, but we must show the error.
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setError('Camera access blocked. Please enable permissions.');
+        setError('Camera access is blocked by your browser. Please click the lock icon in your address bar, Allow Camera, and then click Retry.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setError('No camera found. Please connect a camera.');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setError('Camera is in use by another app. Please close it and try again.');
       } else {
-        setError('Unable to access camera.');
+        setError('Camera error. Click retry to ask for permission again.');
       }
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -104,7 +123,7 @@ const CameraView = forwardRef<CameraViewRef, CameraViewProps>(({ onCapture, isPr
         {error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-red-400 bg-slate-900/95 z-30">
             <p className="mb-6 text-sm">{error}</p>
-            <Button variant="secondary" onClick={startCamera}>Retry Camera</Button>
+            <Button variant="secondary" onClick={startCamera} isLoading={isInitializing}>Retry Camera</Button>
           </div>
         )}
 

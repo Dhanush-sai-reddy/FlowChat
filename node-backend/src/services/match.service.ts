@@ -1,52 +1,63 @@
-import { dequeueUser, Gender , getQueuedUsers} from "./queue.service";
+import { dequeueUser, Gender, Preference, getQueuedUsers } from "./queue.service";
 import redisClient from "../config/redis";
-type Preference = "male" | "female" | "other" | "any";
 
 interface MatchRequest {
-deviceId: string;
-gender: Gender;
-preference: Preference;
+    deviceId: string;
+    gender: Gender;
+    preference: Preference;
 }
 
 async function getCandidates(
-gender: Gender,
-limit = 85
+    gender: Gender,
+    preference: Preference,
+    limit = 85
 ): Promise<string[]> {
-const key =await getQueuedUsers(gender);
-return key;
+    const key = await getQueuedUsers(gender, preference, limit);
+    return key;
 }
 
 export async function findMatch(
-requester: MatchRequest
+    requester: MatchRequest
 ): Promise<string | null> {
-const { deviceId, gender, preference } = requester;
+    const { deviceId, gender, preference } = requester;
 
-// 1. Determine which genders we are allowed to match with
-let preferredGenders: Gender[] = [];
+    // Logic: 
+    // I am [Gender] looking for [Preference].
+    // I need to look in queues of:
+    // 1. [Preference] looking for [Gender]
+    // 2. [Preference] looking for "any"
 
-if (preference !== "any") {
-    preferredGenders = [preference];
-} else {
-    // "any" is fallback only
-    preferredGenders = ["male", "female", "other"];
-}
+    let targetGenders: Gender[] = [];
 
-// 2. Try explicit preference first
-for (const targetGender of preferredGenders) {
-    const candidates = await getCandidates(targetGender);
-
-    for (const candidateId of candidates) {
-    if (candidateId === deviceId) continue;
-
-    // Found a match
-    await dequeueUser(deviceId, gender);
-    await dequeueUser(candidateId, targetGender);
-
-    return candidateId;
+    if (preference !== "any") {
+        targetGenders = [preference];
+    } else {
+        targetGenders = ["male", "female", "other"];
     }
-}
 
-// 3. No match found
-return null;
+    for (const targetGender of targetGenders) {
+        // Check both specific intent and "any" intent queues of the target gender
+        const targetPreferences: Preference[] = [gender, "any"];
+
+        for (const targetPref of targetPreferences) {
+            const candidates = await getCandidates(targetGender, targetPref);
+
+            for (const candidateId of candidates) {
+                if (candidateId === deviceId) continue;
+
+                // FOUND MUTUAL MATCH
+                // I want them (targetGender), they want me (targetPref which is my gender or 'any')
+
+                // Remove both from their respective queues
+                await dequeueUser(deviceId, gender, preference);
+                await dequeueUser(candidateId, targetGender, targetPref);
+
+                return candidateId;
+            }
+        }
+    }
+
+    // No match found
+    return null;
 }
 
