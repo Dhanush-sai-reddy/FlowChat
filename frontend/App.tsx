@@ -9,6 +9,8 @@ import CameraView from './components/CameraView';
 import ProfileSetup from './views/ProfileSetup';
 import { QueueView } from './components/QueueView';
 import { ChatView } from './components/ChatView';
+import CooldownView from './views/CooldownView';
+import { MATCH_COOLDOWN_MS } from './constants';
 
 const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.LANDING);
@@ -18,6 +20,8 @@ const App: React.FC = () => {
 
   // Real Socket States
   const [matchData, setMatchData] = useState<{ partnerId: string, partnerNickname: string, roomId: string } | null>(null);
+  const [shouldAutoQueue, setShouldAutoQueue] = useState(false);
+  const [lastExitTime, setLastExitTime] = useState(0);
 
   const handleCapture = async (base64: string) => {
     setIsProcessing(true);
@@ -99,6 +103,7 @@ const App: React.FC = () => {
           nickname={userProfile.nickname}
           onMatchFound={handleMatchFound}
           onCancel={() => setView(AppView.PROFILE_SETUP)}
+          autoStart={shouldAutoQueue}
         />
       </div>
     );
@@ -110,12 +115,35 @@ const App: React.FC = () => {
         <ChatView
           roomId={matchData.roomId}
           partnerId={matchData.partnerNickname || matchData.partnerId}
-          onLeave={() => {
+          partnerGender="Unknown"
+          partnerBio="Just exploring Klymo."
+          onNext={() => {
             setMatchData(null);
-            setView(AppView.MATCHING);
+            const now = Date.now();
+            const timeSinceLastExit = now - lastExitTime;
+            setLastExitTime(now);
+
+            if (lastExitTime > 0 && timeSinceLastExit < MATCH_COOLDOWN_MS) {
+              setView(AppView.COOLDOWN);
+            } else {
+              setShouldAutoQueue(true);
+              setView(AppView.MATCHING);
+            }
           }}
         />
       </div>
+    );
+  }
+
+  if (view === AppView.COOLDOWN) {
+    return (
+      <CooldownView
+        onComplete={() => {
+          setShouldAutoQueue(true);
+          setView(AppView.MATCHING);
+        }}
+        startTime={lastExitTime}
+      />
     );
   }
 

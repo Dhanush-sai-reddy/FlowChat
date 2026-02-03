@@ -40,6 +40,11 @@ export const joinRoom = (roomId: string) => {
     socket.emit('join_room', roomId);
 };
 
+export const reportUser = (targetId: string, reporterId: string) => {
+    if (!socket) return;
+    socket.emit('report_user', { targetId, reporterId });
+};
+
 export const disconnectSocket = () => {
     if (socket) {
         socket.disconnect();

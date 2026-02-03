@@ -39,7 +39,7 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ detectedGender, deviceId, o
     const fullIdentity = `${nickname.trim()}#${discriminator}`;
 
     onComplete({
-      nickname: nickname.trim(),
+      nickname: fullIdentity,
       bio: bio.trim(),
       verifiedGender: detectedGender,
       deviceId
@@ -58,8 +58,8 @@ const ProfileSetup: React.FC<ProfileSetupProps> = ({ detectedGender, deviceId, o
       <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700/50 backdrop-blur-sm mb-8">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
-            {/* Icon placeholder for Verified status */}
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+             {/* Icon placeholder for Verified status */}
+             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
           </div>
           <div>
             <p className="text-sm text-slate-400">Verified as</p>

@@ -1,10 +1,8 @@
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
-import { DAILY_MATCH_LIMIT } from "../constants";
 
 // DEBUG MODE: Set to true to generate random IDs per session (for testing with multiple tabs)
 const DEBUG_MODE = true;
 
-const DAILY_SPECIFIC_USAGE_KEY = 'klymo_daily_specific_usage';
 const FALLBACK_ID_KEY = 'klymo_fallback_id';
 const SESSION_ID_KEY = 'klymo_session_id';
 
@@ -38,40 +36,4 @@ export const getStableDeviceId = async (): Promise<string> => {
     }
     return id;
   }
-};
-
-interface UsageRecord {
-  date: string;
-  count: number;
-}
-
-const getSpecificUsage = (): UsageRecord => {
-  const today = new Date().toISOString().split('T')[0];
-  const stored = localStorage.getItem(DAILY_SPECIFIC_USAGE_KEY);
-
-  if (stored) {
-    const usage: UsageRecord = JSON.parse(stored);
-    if (usage.date === today) {
-      return usage;
-    }
-  }
-
-  // Reset or new
-  return { date: today, count: 0 };
-};
-
-export const checkSpecificLimit = (): boolean => {
-  const usage = getSpecificUsage();
-  return usage.count < DAILY_MATCH_LIMIT;
-};
-
-export const incrementSpecificUsage = () => {
-  const usage = getSpecificUsage();
-  usage.count += 1;
-  localStorage.setItem(DAILY_SPECIFIC_USAGE_KEY, JSON.stringify(usage));
-};
-
-export const getRemainingSpecificMatches = (): number => {
-  const usage = getSpecificUsage();
-  return Math.max(0, DAILY_MATCH_LIMIT - usage.count);
 };
