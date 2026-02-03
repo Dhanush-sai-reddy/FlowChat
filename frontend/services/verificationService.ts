@@ -57,34 +57,96 @@ const verifyGender = async (imageBase64: string, videoElement?: HTMLVideoElement
     const deviceId = await getStableDeviceId();
     const API_URL = 'http://localhost:3000/api/verify';
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'device-id': deviceId
-      }
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    if (!response.ok) {
-      throw new Error('Backend verification failed');
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+        headers: {
+          'device-id': deviceId
+        }
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error('Backend verification failed');
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError') {
+        console.warn("Backend verification timed out (>5s), switching to local.");
+        throw new Error("Timeout"); // Triggers catch block below
+      }
+      throw err;
     }
 
-    const result = await response.json();
-    return result;
+
 
   } catch (error) {
     console.warn("Backend verification failed, using client-side face-api.js:", error);
 
-    // if (videoElement) {
-    //   return verifyGenderClientSide(videoElement);
-    // }
+    try {
+      // Fallback to client-side detection
+      const { detectGenderFromImage } = await import("./faceApiService");
 
-    return {
-      isVerified: false,
-      detectedGender: null,
-      confidence: 0,
-      error: "Verification service unavailable. Please try again."
-    };
+      // Create image element from base64
+      const img = new Image();
+      const imageLoadPromise = new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = reject;
+      });
+
+      // Handle data URL prefix if missing
+      img.src = imageBase64.startsWith('data:')
+        ? imageBase64
+        : `data:image/jpeg;base64,${imageBase64}`;
+
+      await imageLoadPromise;
+      const result = await detectGenderFromImage(img);
+
+      if (!result.detected) {
+        return {
+          isVerified: false,
+          detectedGender: null,
+          confidence: 0,
+          error: "Backend down & Face not detected locally."
+        };
+      }
+
+      const detectedGender = result.gender === 'female' ? Gender.FEMALE :
+        result.gender === 'male' ? Gender.MALE : null;
+
+      return {
+        isVerified: result.genderProbability > 0.6,
+        detectedGender: detectedGender,
+        confidence: result.genderProbability,
+        error: undefined
+      };
+
+    } catch (fallbackError) {
+      console.error("Fallback verification failed:", fallbackError);
+
+      let backendStatus = "Backend error";
+      if (error instanceof Error) {
+        if (error.message === "Timeout") backendStatus = "Server timed out";
+        else if (error.message === "Backend verification failed") backendStatus = "Server unavailable";
+      }
+
+      console.warn(`Technical Error: ${backendStatus} & Local Fallback Failed.`);
+
+      return {
+        isVerified: false,
+        detectedGender: null,
+        confidence: 0,
+        error: "Verification unable to confirm. Please ensure your face is clearly visible."
+      };
+    }
   }
 };
 

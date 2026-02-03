@@ -37,3 +37,9 @@ export const isBanned = async (deviceId: string): Promise<boolean> => {
     const result = await redisClient.get(banKey);
     return result === 'banned';
 };
+
+export const getReportCount = async (deviceId: string): Promise<number> => {
+    const reportKey = getReportKey(deviceId);
+    const count = await redisClient.get(reportKey);
+    return count ? parseInt(count, 10) : 0;
+};

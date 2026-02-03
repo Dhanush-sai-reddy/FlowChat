@@ -18,21 +18,28 @@ export async function isUserQueued(
 }
 
 
+import { getReportCount } from "./report.service";
+
 export async function enqueueUser(
   deviceId: string,
   gender: Gender,
   preference: Preference
 ) {
   const key = queueKey(gender, preference);
-  const timestamp = Date.now();
 
-  // ZADD: add deviceId with timestamp score
+  // Karma Logic:
+  // Base Score = Timestamp (FIFO)
+  // Penalty = Report Count * 1 Minute (60000ms)
+  // Higher Score = Later in queue (De-prioritized)
+  const reportCount = await getReportCount(deviceId);
+  const penalty = reportCount * 60000;
+  const score = Date.now() + penalty;
 
   if (await isUserQueued(deviceId, gender, preference)) {
     throw new Error("User already in the queue");
   }
   await redisClient.zAdd(key, {
-    score: timestamp,
+    score: score,
     value: deviceId,
   });
 }
