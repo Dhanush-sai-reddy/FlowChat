@@ -29,10 +29,10 @@ export async function enqueueUser(
 
   // Karma Logic:
   // Base Score = Timestamp (FIFO)
-  // Penalty = Report Count * 1 Minute (60000ms)
+  // Penalty = Report Count * 12 Seconds (12000ms)
   // Higher Score = Later in queue (De-prioritized)
   const reportCount = await getReportCount(deviceId);
-  const penalty = reportCount * 60000;
+  const penalty = reportCount * 12000;
   const score = Date.now() + penalty;
 
   if (await isUserQueued(deviceId, gender, preference)) {
