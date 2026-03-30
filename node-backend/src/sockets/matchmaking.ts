@@ -38,10 +38,20 @@ export default function handleMatchmaking(io: Server, socket: Socket) {
         try {
             const { deviceId, gender, preference, nickname } = data;
 
-            // Check if banned
-            const banned = await isBanned(deviceId);
-            if (banned) {
-                socket.emit('error', { message: "You have been banned for 24 hours due to multiple reports." });
+            // Check if banned (permanent block via Bloom filter → Mongo, or temp Redis ban)
+            const banStatus = await isBanned(deviceId);
+            if (banStatus.banned) {
+                if (banStatus.type === 'permanent') {
+                    socket.emit('error', {
+                        message: "Your device has been permanently blocked due to repeated violations.",
+                        type: 'permanent_block'
+                    });
+                } else {
+                    socket.emit('error', {
+                        message: "You have been banned for 24 hours due to multiple reports.",
+                        type: 'temporary_ban'
+                    });
+                }
                 return;
             }
 
@@ -136,12 +146,30 @@ export default function handleMatchmaking(io: Server, socket: Socket) {
     });
 
     // Helper to register deviceId for targeting
-    socket.on('register_device', (deviceId: string) => {
+    socket.on('register_device', async (deviceId: string) => {
+        // Check permanent block on connection
+        const banStatus = await isBanned(deviceId);
+        if (banStatus.banned && banStatus.type === 'permanent') {
+            socket.emit('error', {
+                message: "Your device has been permanently blocked due to repeated violations.",
+                type: 'permanent_block'
+            });
+            return;
+        }
+
         socket.join(`user:${deviceId}`);
         console.log(`Socket ${socket.id} registered as device ${deviceId}`);
         // Send initial limit
         getRemaining(deviceId).then(remaining => {
             socket.emit('limit_update', { remaining });
         });
+
+        // Also notify if currently temp-banned
+        if (banStatus.banned && banStatus.type === 'temporary') {
+            socket.emit('error', {
+                message: "You have been banned for 24 hours due to multiple reports.",
+                type: 'temporary_ban'
+            });
+        }
     });
 }

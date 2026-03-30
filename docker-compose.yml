@@ -8,6 +8,15 @@ services:
     networks:
       - klymoo-network
 
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - klymoo-network
+
   fastapi-service:
     build: ./fastapi-service
     ports:
@@ -24,8 +33,10 @@ services:
       - REDIS_PORT=6379
       - PORT=3000
       - FASTAPI_URL=http://fastapi-service:8000
+      - MONGO_URI=mongodb://mongo:27017/klymo
     depends_on:
       - redis
+      - mongo
       - fastapi-service
     networks:
       - klymoo-network
@@ -33,7 +44,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "5173:80" # Mapping internal 80 to external 5173 (standard vite port) or 8080
+      - "5173:80"
     depends_on:
       - node-backend
     networks:
@@ -42,3 +53,6 @@ services:
 networks:
   klymoo-network:
     driver: bridge
+
+volumes:
+  mongo_data:
