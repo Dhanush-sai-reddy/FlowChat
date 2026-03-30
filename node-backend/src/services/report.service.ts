@@ -13,7 +13,6 @@ const REPORT_WINDOW_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 const getReportKey = (deviceId: string) => `reports:${deviceId}`;
 const getBanKey = (deviceId: string) => `ban:${deviceId}`;
-const getPermaBanKey = (deviceId: string) => `permaban:${deviceId}`;
 
 // ─── Report Flow ──────────────────────────────────────────────────────────────
 
@@ -100,11 +99,8 @@ async function applyPermanentBlock(deviceId: string, record: any): Promise<void>
 
     await record.save();
 
-    // Add to Bloom filter (in-memory)
+    // Add to Bloom filter (in-memory) — no Redis needed for permanent blocks
     blockedUsersFilter.add(deviceId);
-
-    // Set permanent Redis key (no TTL — survives until manual deletion)
-    await redisClient.set(getPermaBanKey(deviceId), "permanent");
 
     console.log(
         `[PERMANENT BLOCK] User ${deviceId} permanently blocked. ` +
@@ -117,8 +113,7 @@ async function applyPermanentBlock(deviceId: string, record: any): Promise<void>
 /**
  * Fast permanent block check:
  * 1. Bloom filter (O(1), in-memory) — if negative, definitely not blocked
- * 2. On positive hit, confirm against Redis permanent key
- * 3. On Redis miss (shouldn't happen), confirm against Mongo
+ * 2. On positive hit, confirm against Mongo (authoritative source of truth)
  */
 export const isPermanentlyBlocked = async (deviceId: string): Promise<boolean> => {
     // Fast path: Bloom filter says no → definitely not blocked
@@ -126,26 +121,13 @@ export const isPermanentlyBlocked = async (deviceId: string): Promise<boolean> =
         return false;
     }
 
-    // Bloom says maybe → confirm with Redis (fast) then Mongo (authoritative)
-    const redisResult = await redisClient.get(getPermaBanKey(deviceId));
-    if (redisResult === "permanent") {
-        return true;
-    }
-
-    // Redis key might be missing (e.g., Redis restart) → check Mongo
+    // Bloom says maybe → confirm with Mongo (only reached on actual blocks or rare false positives)
     const record = await ReportRecord.findOne(
         { deviceId, isPermanentlyBlocked: true },
         { _id: 1 }
     ).lean();
 
-    if (record) {
-        // Re-set Redis key since it was missing
-        await redisClient.set(getPermaBanKey(deviceId), "permanent");
-        return true;
-    }
-
-    // Bloom filter false positive
-    return false;
+    return !!record;
 };
 
 /**
